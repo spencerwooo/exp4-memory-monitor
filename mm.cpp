@@ -8,8 +8,8 @@ const int UNIT_MB = 1204 * 1024;
 const int UNIT_GB = 1024 * 1024 * 1024;
 const int COL_1 = 35;
 const int BLOCK_1 = 1;
-const int BLOCK_2 = 9;
-const int BLOCK_3 = 14;
+const int BLOCK_2 = 7;
+const int BLOCK_3 = 12;
 
 // FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE |
 const unsigned short BLUE_TITLE = BACKGROUND_BLUE;
@@ -17,6 +17,7 @@ const unsigned short YELLOW_TITLE = BACKGROUND_RED | BACKGROUND_GREEN;
 const unsigned short GREEN_TITLE = BACKGROUND_GREEN;
 const unsigned short BLUE_CONTENT = FOREGROUND_BLUE;
 const unsigned short GREEN_CONTENT = FOREGROUND_GREEN;
+const unsigned short RED_CONTENT = FOREGROUND_RED;
 const unsigned short YELLOW_CONTENT = FOREGROUND_RED | FOREGROUND_GREEN;
 const unsigned short WHITE_CONTENT = FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE;
 
@@ -91,12 +92,10 @@ int main(int argc, char const *argv[])
   cout << setw(COL_1) << left << "------------- MEMORY -------------" << endl;
   setConsoleColor(BLUE_CONTENT);
   cout << setw(COL_1) << left << "Memory in use: " << endl;
-  cout << setw(COL_1) << left << "Total physical memory: " << endl;
-  cout << setw(COL_1) << left << "Available physical memory: " << endl;
-  cout << setw(COL_1) << left << "Total paging file: " << endl;
-  cout << setw(COL_1) << left << "Available paging file: " << endl;
-  cout << setw(COL_1) << left << "Total virtual memory: " << endl;
-  cout << setw(COL_1) << left << "Available virtual memory: " << endl;
+  cout << endl;
+  cout << setw(COL_1) << left << "Physical memory: " << endl;
+  cout << setw(COL_1) << left << "Paging file: " << endl;
+  cout << setw(COL_1) << left << "Virtual memory: " << endl;
 
   setConsoleColor(YELLOW_TITLE);
   cout << setw(COL_1) << left << "---------- SYSTEM INFO -----------" << endl;
@@ -134,20 +133,36 @@ int main(int argc, char const *argv[])
 
     setConsoleColor(WHITE_CONTENT);
 
-    setCursorPosition(COL_1, BLOCK_1);
-    cout << fixed << setprecision(2) << (float)stat.dwMemoryLoad << " %";
+    setCursorPosition(0, BLOCK_1 + 1);
+    int memPercentFull = COL_1 - 2;
+    int memPercentCurr = memPercentFull * stat.dwMemoryLoad / 100;
+    for (int i = 0; i < memPercentFull; i++)
+    {
+      if (i < memPercentCurr)
+      {
+        setConsoleColor(RED_CONTENT);
+      }
+      else
+      {
+        setConsoleColor(WHITE_CONTENT);
+      }
+      cout << "|";
+    }
+
     setCursorPosition(COL_1, BLOCK_1 + 1);
-    cout << fixed << setprecision(2) << (float)stat.ullTotalPhys / UNIT_GB << " GB";
+    cout << fixed << setprecision(2) << (float)stat.dwMemoryLoad << " %";
+
     setCursorPosition(COL_1, BLOCK_1 + 2);
     cout << fixed << setprecision(2) << (float)stat.ullAvailPhys / UNIT_GB << " GB";
+    cout << "/" << fixed << setprecision(2) << (float)stat.ullTotalPhys / UNIT_GB << " GB";
+
     setCursorPosition(COL_1, BLOCK_1 + 3);
-    cout << fixed << setprecision(2) << (float)stat.ullTotalPageFile / UNIT_GB << " GB";
-    setCursorPosition(COL_1, BLOCK_1 + 4);
     cout << fixed << setprecision(2) << (float)stat.ullAvailPageFile / UNIT_GB << " GB";
-    setCursorPosition(COL_1, BLOCK_1 + 5);
-    cout << fixed << setprecision(2) << (float)stat.ullTotalVirtual / UNIT_GB << " GB";
-    setCursorPosition(COL_1, BLOCK_1 + 6);
+    cout << "/" << fixed << setprecision(2) << (float)stat.ullTotalPageFile / UNIT_GB << " GB";
+
+    setCursorPosition(COL_1, BLOCK_1 + 4);
     cout << fixed << setprecision(2) << (float)stat.ullAvailVirtual / UNIT_GB << " GB";
+    cout << "/" << fixed << setprecision(2) << (float)stat.ullTotalVirtual / UNIT_GB << " GB";
 
     // Contains information about the current computer system.
     // 当前计算机系统的信息

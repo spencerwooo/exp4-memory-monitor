@@ -153,7 +153,7 @@ int main(int argc, char const *argv[])
   cout << setw(COL_2_1) << left << "Process Name";
   cout << setw(COL_2_1) << left << "Virtual Mem" << endl;
 
-  while (!kbhit())
+  while (!_kbhit())
   {
     ShowConsoleCursor(false);
     // Retrieves information about the system's current usage of both physical and virtual memory.
@@ -346,6 +346,7 @@ int main(int argc, char const *argv[])
     Sleep(1000);
   }
 
+  _getch();
   clearScreen(hStdout);
 
   return 0;

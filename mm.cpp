@@ -221,7 +221,7 @@ int main(int argc, char const *argv[])
     }
 
     setCursorPosition(commitPercentPeak - 1, BLOCK_3);
-    setConsoleColor(RED_TITLE);
+    setConsoleColor(RED_CONTENT);
 
     cout << u8"\u2193";
     cout << " PEAK: " << performInfo.CommitPeak;

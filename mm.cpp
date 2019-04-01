@@ -3,6 +3,9 @@
 #include <iomanip>
 #include <iostream>
 #include <tlhelp32.h>
+#include <string.h>
+#include <shlwapi.h>
+#include <conio.h>
 
 const int UNIT_KB = 1024;
 const int UNIT_MB = 1204 * 1024;
@@ -13,6 +16,7 @@ const int COL_2_1 = 20;
 const int BLOCK_1 = 1;
 const int BLOCK_2 = 7;
 const int BLOCK_3 = 12;
+const int BLOCK_4 = 9;
 
 // FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE |
 const unsigned short BLUE_TITLE = BACKGROUND_BLUE;
@@ -129,7 +133,8 @@ int main(int argc, char const *argv[])
   printTitle("PERFORMANCE INFO");
   setConsoleColor(GREEN_CONTENT);
   cout << "Commit pages: " << endl;
-  cout << endl;
+  cout << "\n"
+       << endl;
   cout << "Physical memory: " << endl;
   cout << "System cache: " << endl;
   cout << "Kernel memory: " << endl;
@@ -148,7 +153,7 @@ int main(int argc, char const *argv[])
   cout << setw(COL_2_1) << left << "Process Name";
   cout << setw(COL_2_1) << left << "Virtual Mem" << endl;
 
-  while (1)
+  while (!kbhit())
   {
     ShowConsoleCursor(false);
     // Retrieves information about the system's current usage of both physical and virtual memory.
@@ -210,7 +215,7 @@ int main(int argc, char const *argv[])
     performInfo.cb = sizeof(performInfo);
     GetPerformanceInfo(&performInfo, sizeof(performInfo));
 
-    setCursorPosition(0, BLOCK_3 + 1);
+    setCursorPosition(0, BLOCK_3 + 2);
     int commitPercentFull = COL_1 - 2;
     int commitPercentCurr = commitPercentFull * performInfo.CommitTotal / performInfo.CommitLimit;
     int commitPercentPeak = commitPercentFull * performInfo.CommitPeak / performInfo.CommitLimit;
@@ -232,32 +237,36 @@ int main(int argc, char const *argv[])
       cout << "|";
     }
 
-    setCursorPosition(commitPercentPeak - 1, BLOCK_3);
+    setCursorPosition(0, BLOCK_3 + 1);
+    for (int i = 0; i < commitPercentPeak - 1; i++)
+    {
+      cout << " ";
+    }
     setConsoleColor(RED_CONTENT);
 
     cout << u8"\u2193";
     cout << " PEAK: " << performInfo.CommitPeak;
 
-    setCursorPosition(COL_1, BLOCK_3 + 1);
+    setCursorPosition(COL_1, BLOCK_3 + 2);
     setConsoleColor(WHITE_CONTENT);
     cout << performInfo.CommitTotal << "/";
     cout << performInfo.CommitLimit;
     setCursorPosition(commitPercentPeak, BLOCK_3);
 
-    setCursorPosition(COL_1, BLOCK_3 + 2);
-    cout << performInfo.PhysicalAvailable << "/" << performInfo.PhysicalTotal << " pages";
     setCursorPosition(COL_1, BLOCK_3 + 3);
+    cout << performInfo.PhysicalAvailable << "/" << performInfo.PhysicalTotal << " pages";
+    setCursorPosition(COL_1, BLOCK_3 + 4);
     cout << performInfo.SystemCache;
 
-    setCursorPosition(COL_1, BLOCK_3 + 4);
-    cout << performInfo.KernelPaged << "/" << performInfo.KernelTotal << " pages";
     setCursorPosition(COL_1, BLOCK_3 + 5);
-    cout << performInfo.PageSize / UNIT_KB << " KB";
+    cout << performInfo.KernelPaged << "/" << performInfo.KernelTotal << " pages";
     setCursorPosition(COL_1, BLOCK_3 + 6);
-    cout << performInfo.HandleCount;
+    cout << performInfo.PageSize / UNIT_KB << " KB";
     setCursorPosition(COL_1, BLOCK_3 + 7);
-    cout << performInfo.ProcessCount;
+    cout << performInfo.HandleCount;
     setCursorPosition(COL_1, BLOCK_3 + 8);
+    cout << performInfo.ProcessCount;
+    setCursorPosition(COL_1, BLOCK_3 + 9);
     cout << performInfo.ThreadCount;
 
     PROCESSENTRY32 pe;
@@ -265,23 +274,75 @@ int main(int argc, char const *argv[])
     HANDLE hProcessSnap = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     BOOL bMore = ::Process32First(hProcessSnap, &pe);
 
-    for (int i = 0; i < 20; i++)
+    int i = 0;
+    DWORD pid = 0;
+    while (bMore)
     {
       HANDLE hP = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe.th32ProcessID);
       PROCESS_MEMORY_COUNTERS pmc;
       ZeroMemory(&pmc, sizeof(pmc));
       GetProcessMemoryInfo(hP, &pmc, sizeof(pmc));
 
-      setCursorPosition(COL_1 + COL_2 + 1, i + 2);
-      cout << "PID: " << pe.th32ProcessID;
-      setCursorPosition(COL_1 + COL_2 + 1 + COL_2_1, i + 2);
-      cout << pe.szExeFile << endl;
-      setCursorPosition(COL_1 + COL_2 + 1 + COL_2_1 + COL_2_1, i + 2);
-      cout << pmc.WorkingSetSize << "KB" << endl;
+      pid = pe.th32ProcessID;
+
+      if (argc != 2)
+      {
+        setCursorPosition(COL_1 + COL_2 + 1, i + 2);
+        cout << "PID: " << pe.th32ProcessID;
+        setCursorPosition(COL_1 + COL_2 + 1 + COL_2_1, i + 2);
+        cout << pe.szExeFile << endl;
+        setCursorPosition(COL_1 + COL_2 + 1 + COL_2_1 + COL_2_1, i + 2);
+        cout << pmc.WorkingSetSize / UNIT_MB << "MB" << endl;
+
+        i++;
+
+        if (i > 19)
+          break;
+      }
+      else
+      {
+        char procName[260];
+        sprintf(procName, "%s", pe.szExeFile);
+
+        char queryProcName[260];
+        sprintf(queryProcName, "%s", argv[1]);
+
+        if (!strcmp(procName, queryProcName))
+        {
+          setCursorPosition(COL_1 + COL_2 + 1, i + 2);
+          cout << "PID: " << pe.th32ProcessID;
+          setCursorPosition(COL_1 + COL_2 + 1 + COL_2_1, i + 2);
+          cout << pe.szExeFile << endl;
+          setCursorPosition(COL_1 + COL_2 + 1 + COL_2_1 + COL_2_1, i + 2);
+          cout << pmc.WorkingSetSize / UNIT_MB << "MB" << endl;
+
+          i++;
+
+          if (i > 5)
+            break;
+        }
+      }
 
       bMore = ::Process32Next(hProcessSnap, &pe);
     }
 
+    if (argc == 2)
+    {
+      setCursorPosition(COL_1 + COL_2, BLOCK_4);
+
+      char procDetailTitle[260];
+      sprintf(procDetailTitle, "Process <%s> detail", argv[1]);
+
+      setConsoleColor(RED_TITLE);
+      printTitle(procDetailTitle);
+
+      setConsoleColor(WHITE_CONTENT);
+
+      setCursorPosition(COL_1 + COL_2 + 1, BLOCK_4 + 1);
+      cout << "[Process details here:]" << endl;
+    }
+
+    setConsoleColor(WHITE_CONTENT);
     Sleep(1000);
   }
 

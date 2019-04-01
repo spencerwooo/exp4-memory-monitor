@@ -2,12 +2,14 @@
 #include <psapi.h>
 #include <iomanip>
 #include <iostream>
+#include <tlhelp32.h>
 
 const int UNIT_KB = 1024;
 const int UNIT_MB = 1204 * 1024;
 const int UNIT_GB = 1024 * 1024 * 1024;
 const int COL_1 = 35;
 const int COL_2 = 25;
+const int COL_2_1 = 20;
 const int BLOCK_1 = 1;
 const int BLOCK_2 = 7;
 const int BLOCK_3 = 12;
@@ -136,6 +138,16 @@ int main(int argc, char const *argv[])
   cout << "Processes: " << endl;
   cout << "Threads: " << endl;
 
+  setCursorPosition(COL_1 + COL_2, 0);
+  setConsoleColor(RED_TITLE);
+  printTitle("PROCESS INFO");
+
+  setCursorPosition(COL_1 + COL_2 + 1, 1);
+  setConsoleColor(RED_CONTENT);
+  cout << setw(COL_2_1) << left << "Process ID";
+  cout << setw(COL_2_1) << left << "Process Name";
+  cout << setw(COL_2_1) << left << "Virtual Mem" << endl;
+
   while (1)
   {
     ShowConsoleCursor(false);
@@ -247,6 +259,28 @@ int main(int argc, char const *argv[])
     cout << performInfo.ProcessCount;
     setCursorPosition(COL_1, BLOCK_3 + 8);
     cout << performInfo.ThreadCount;
+
+    PROCESSENTRY32 pe;
+    pe.dwSize = sizeof(pe);
+    HANDLE hProcessSnap = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    BOOL bMore = ::Process32First(hProcessSnap, &pe);
+
+    for (int i = 0; i < 20; i++)
+    {
+      HANDLE hP = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe.th32ProcessID);
+      PROCESS_MEMORY_COUNTERS pmc;
+      ZeroMemory(&pmc, sizeof(pmc));
+      GetProcessMemoryInfo(hP, &pmc, sizeof(pmc));
+
+      setCursorPosition(COL_1 + COL_2 + 1, i + 2);
+      cout << "PID: " << pe.th32ProcessID;
+      setCursorPosition(COL_1 + COL_2 + 1 + COL_2_1, i + 2);
+      cout << pe.szExeFile << endl;
+      setCursorPosition(COL_1 + COL_2 + 1 + COL_2_1 + COL_2_1, i + 2);
+      cout << pmc.WorkingSetSize << "KB" << endl;
+
+      bMore = ::Process32Next(hProcessSnap, &pe);
+    }
 
     Sleep(1000);
   }

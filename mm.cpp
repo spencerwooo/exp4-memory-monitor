@@ -7,6 +7,7 @@ const int UNIT_KB = 1024;
 const int UNIT_MB = 1204 * 1024;
 const int UNIT_GB = 1024 * 1024 * 1024;
 const int COL_1 = 35;
+const int COL_2 = 25;
 const int BLOCK_1 = 1;
 const int BLOCK_2 = 7;
 const int BLOCK_3 = 12;
@@ -15,6 +16,7 @@ const int BLOCK_3 = 12;
 const unsigned short BLUE_TITLE = BACKGROUND_BLUE;
 const unsigned short YELLOW_TITLE = BACKGROUND_RED | BACKGROUND_GREEN;
 const unsigned short GREEN_TITLE = BACKGROUND_GREEN;
+const unsigned short RED_TITLE = BACKGROUND_RED;
 const unsigned short BLUE_CONTENT = FOREGROUND_BLUE;
 const unsigned short GREEN_CONTENT = FOREGROUND_GREEN;
 const unsigned short RED_CONTENT = FOREGROUND_RED;
@@ -82,6 +84,22 @@ void setConsoleColor(unsigned short color)
   SetConsoleTextAttribute(hOut, color);
 }
 
+void printTitle(string title)
+{
+  int Width = COL_1 + COL_2 - title.length();
+  int halfWidth = Width / 2;
+  for (int i = 0; i < halfWidth; i++)
+  {
+    cout << " ";
+  }
+  cout << title;
+  for (int i = 0; i < Width - halfWidth; i++)
+  {
+    cout << " ";
+  }
+  cout << endl;
+}
+
 int main(int argc, char const *argv[])
 {
   HANDLE hStdout;
@@ -89,38 +107,34 @@ int main(int argc, char const *argv[])
   clearScreen(hStdout);
 
   setConsoleColor(BLUE_TITLE);
-  cout << setw(COL_1) << left << "------------- MEMORY -------------" << endl;
+  printTitle("MEMORY");
   setConsoleColor(BLUE_CONTENT);
-  cout << setw(COL_1) << left << "Memory in use: " << endl;
+  cout << "Memory in use: " << endl;
   cout << endl;
-  cout << setw(COL_1) << left << "Physical memory: " << endl;
-  cout << setw(COL_1) << left << "Paging file: " << endl;
-  cout << setw(COL_1) << left << "Virtual memory: " << endl;
+  cout << "Physical memory: " << endl;
+  cout << "Paging file: " << endl;
+  cout << "Virtual memory: " << endl;
 
   setConsoleColor(YELLOW_TITLE);
-  cout << setw(COL_1) << left << "---------- SYSTEM INFO -----------" << endl;
+  printTitle("SYSTEM INFO");
   setConsoleColor(YELLOW_CONTENT);
-  cout << setw(COL_1) << left << "Page size: " << endl;
-  cout << setw(COL_1) << left << "Lowest memory address accessible: " << endl;
-  cout << setw(COL_1) << left << "Highest memory address accessible: " << endl;
-  cout << setw(COL_1) << left << "Allocation granularity: " << endl;
+  cout << "Page size: " << endl;
+  cout << "Lowest memory address accessible: " << endl;
+  cout << "Highest memory address accessible: " << endl;
+  cout << "Allocation granularity: " << endl;
 
   setConsoleColor(GREEN_TITLE);
-  cout << setw(COL_1) << left << "---- PERFORMANCE INFORMATION -----" << endl;
+  printTitle("PERFORMANCE INFO");
   setConsoleColor(GREEN_CONTENT);
-  cout << setw(COL_1) << left << "Total commit pages: " << endl;
-  cout << setw(COL_1) << left << "Current max commit pages" << endl;
-  cout << setw(COL_1) << left << "Peak commit pages: " << endl;
-  cout << setw(COL_1) << left << "Actual physical memory: " << endl;
-  cout << setw(COL_1) << left << "Available physical memory: " << endl;
-  cout << setw(COL_1) << left << "System cache: " << endl;
-  cout << setw(COL_1) << left << "Kernel total memory: " << endl;
-  cout << setw(COL_1) << left << "Kernel paged memory: " << endl;
-  cout << setw(COL_1) << left << "Kernel nonpaged memory: " << endl;
-  cout << setw(COL_1) << left << "Page size: " << endl;
-  cout << setw(COL_1) << left << "Open handles: " << endl;
-  cout << setw(COL_1) << left << "Processes: " << endl;
-  cout << setw(COL_1) << left << "Threads: " << endl;
+  cout << "Commit pages: " << endl;
+  cout << endl;
+  cout << "Physical memory: " << endl;
+  cout << "System cache: " << endl;
+  cout << "Kernel memory: " << endl;
+  cout << "Page size: " << endl;
+  cout << "Open handles: " << endl;
+  cout << "Processes: " << endl;
+  cout << "Threads: " << endl;
 
   while (1)
   {
@@ -184,31 +198,54 @@ int main(int argc, char const *argv[])
     performInfo.cb = sizeof(performInfo);
     GetPerformanceInfo(&performInfo, sizeof(performInfo));
 
-    setCursorPosition(COL_1, BLOCK_3);
-    cout << performInfo.CommitTotal;
+    setCursorPosition(0, BLOCK_3 + 1);
+    int commitPercentFull = COL_1 - 2;
+    int commitPercentCurr = commitPercentFull * performInfo.CommitTotal / performInfo.CommitLimit;
+    int commitPercentPeak = commitPercentFull * performInfo.CommitPeak / performInfo.CommitLimit;
+    for (int i = 0; i < commitPercentFull; i++)
+    {
+
+      if (i < commitPercentCurr)
+      {
+        setConsoleColor(GREEN_CONTENT);
+      }
+      else if (i >= commitPercentCurr && i < commitPercentPeak)
+      {
+        setConsoleColor(RED_CONTENT);
+      }
+      else
+      {
+        setConsoleColor(WHITE_CONTENT);
+      }
+      cout << "|";
+    }
+
+    setCursorPosition(commitPercentPeak - 1, BLOCK_3);
+    setConsoleColor(RED_TITLE);
+
+    cout << u8"\u2193";
+    cout << " PEAK: " << performInfo.CommitPeak;
+
     setCursorPosition(COL_1, BLOCK_3 + 1);
+    setConsoleColor(WHITE_CONTENT);
+    cout << performInfo.CommitTotal << "/";
     cout << performInfo.CommitLimit;
+    setCursorPosition(commitPercentPeak, BLOCK_3);
+
     setCursorPosition(COL_1, BLOCK_3 + 2);
-    cout << performInfo.CommitPeak;
+    cout << performInfo.PhysicalAvailable << "/" << performInfo.PhysicalTotal << " pages";
     setCursorPosition(COL_1, BLOCK_3 + 3);
-    cout << performInfo.PhysicalTotal;
-    setCursorPosition(COL_1, BLOCK_3 + 4);
-    cout << performInfo.PhysicalAvailable;
-    setCursorPosition(COL_1, BLOCK_3 + 5);
     cout << performInfo.SystemCache;
-    setCursorPosition(COL_1, BLOCK_3 + 6);
-    cout << performInfo.KernelTotal;
-    setCursorPosition(COL_1, BLOCK_3 + 7);
-    cout << performInfo.KernelPaged;
-    setCursorPosition(COL_1, BLOCK_3 + 8);
-    cout << performInfo.KernelNonpaged;
-    setCursorPosition(COL_1, BLOCK_3 + 9);
+
+    setCursorPosition(COL_1, BLOCK_3 + 4);
+    cout << performInfo.KernelPaged << "/" << performInfo.KernelTotal << " pages";
+    setCursorPosition(COL_1, BLOCK_3 + 5);
     cout << performInfo.PageSize / UNIT_KB << " KB";
-    setCursorPosition(COL_1, BLOCK_3 + 10);
+    setCursorPosition(COL_1, BLOCK_3 + 6);
     cout << performInfo.HandleCount;
-    setCursorPosition(COL_1, BLOCK_3 + 11);
+    setCursorPosition(COL_1, BLOCK_3 + 7);
     cout << performInfo.ProcessCount;
-    setCursorPosition(COL_1, BLOCK_3 + 12);
+    setCursorPosition(COL_1, BLOCK_3 + 8);
     cout << performInfo.ThreadCount;
 
     Sleep(1000);

@@ -12,7 +12,9 @@ const int UNIT_MB = 1204 * 1024;
 const int UNIT_GB = 1024 * 1024 * 1024;
 const int COL_1 = 35;
 const int COL_2 = 25;
-const int COL_2_1 = 20;
+const int COL_3 = 80;
+const int COL_2_1 = 28;
+const int COL_2_2 = 11;
 const int BLOCK_1 = 1;
 const int BLOCK_2 = 7;
 const int BLOCK_3 = 12;
@@ -23,6 +25,7 @@ const unsigned short BLUE_TITLE = BACKGROUND_BLUE;
 const unsigned short YELLOW_TITLE = BACKGROUND_RED | BACKGROUND_GREEN;
 const unsigned short GREEN_TITLE = BACKGROUND_GREEN;
 const unsigned short RED_TITLE = BACKGROUND_RED;
+const unsigned short WHITE_TITLE = BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE;
 const unsigned short BLUE_CONTENT = FOREGROUND_BLUE;
 const unsigned short GREEN_CONTENT = FOREGROUND_GREEN;
 const unsigned short RED_CONTENT = FOREGROUND_RED;
@@ -32,6 +35,7 @@ const unsigned short WHITE_CONTENT = FOREGROUND_GREEN | FOREGROUND_RED | FOREGRO
 using namespace std;
 
 #pragma comment(lib, "psapi.lib")
+#pragma comment(lib, "shlwapi.lib")
 
 void ShowConsoleCursor(bool showFlag)
 {
@@ -90,9 +94,9 @@ void setConsoleColor(unsigned short color)
   SetConsoleTextAttribute(hOut, color);
 }
 
-void printTitle(string title)
+void printTitle(string title, int titleLength)
 {
-  int Width = COL_1 + COL_2 - title.length();
+  int Width = titleLength - title.length();
   int halfWidth = Width / 2;
   for (int i = 0; i < halfWidth; i++)
   {
@@ -113,7 +117,7 @@ int main(int argc, char const *argv[])
   clearScreen(hStdout);
 
   setConsoleColor(BLUE_TITLE);
-  printTitle("MEMORY");
+  printTitle("MEMORY", COL_1 + COL_2);
   setConsoleColor(BLUE_CONTENT);
   cout << "Memory in use: " << endl;
   cout << endl;
@@ -122,7 +126,7 @@ int main(int argc, char const *argv[])
   cout << "Virtual memory: " << endl;
 
   setConsoleColor(YELLOW_TITLE);
-  printTitle("SYSTEM INFO");
+  printTitle("SYSTEM INFO", COL_1 + COL_2);
   setConsoleColor(YELLOW_CONTENT);
   cout << "Page size: " << endl;
   cout << "Lowest memory address accessible: " << endl;
@@ -130,7 +134,7 @@ int main(int argc, char const *argv[])
   cout << "Allocation granularity: " << endl;
 
   setConsoleColor(GREEN_TITLE);
-  printTitle("PERFORMANCE INFO");
+  printTitle("PERFORMANCE INFO", COL_1 + COL_2);
   setConsoleColor(GREEN_CONTENT);
   cout << "Commit pages: " << endl;
   cout << "\n"
@@ -143,15 +147,37 @@ int main(int argc, char const *argv[])
   cout << "Processes: " << endl;
   cout << "Threads: " << endl;
 
+  setConsoleColor(WHITE_TITLE);
+  printTitle("Press any key to exit.", COL_1 + COL_2 + COL_3);
+
   setCursorPosition(COL_1 + COL_2, 0);
   setConsoleColor(RED_TITLE);
-  printTitle("PROCESS INFO");
+  printTitle("PROCESS INFO", COL_3);
 
   setCursorPosition(COL_1 + COL_2 + 1, 1);
   setConsoleColor(RED_CONTENT);
   cout << setw(COL_2_1) << left << "Process ID";
   cout << setw(COL_2_1) << left << "Process Name";
   cout << setw(COL_2_1) << left << "Virtual Mem" << endl;
+
+  if (argc == 2)
+  {
+    setCursorPosition(COL_1 + COL_2, BLOCK_4);
+
+    char procDetailTitle[260];
+    sprintf(procDetailTitle, "Process <%s> detail", argv[1]);
+
+    setConsoleColor(RED_TITLE);
+    printTitle(procDetailTitle, COL_3);
+
+    setConsoleColor(RED_CONTENT);
+    setCursorPosition(COL_1 + COL_2 + 1, BLOCK_4 + 1);
+    cout << setw(COL_2_2 + 24) << left << "Block Address";
+    cout << setw(COL_2_2) << left << "Block Stat";
+    cout << setw(COL_2_2) << left << "Protection";
+    cout << setw(COL_2_2) << left << "Type";
+    cout << setw(COL_2_2) << left << "EXE name";
+  }
 
   while (!_kbhit())
   {
@@ -326,20 +352,76 @@ int main(int argc, char const *argv[])
       bMore = ::Process32Next(hProcessSnap, &pe);
     }
 
+    // 输出进程虚拟地址信息
     if (argc == 2)
     {
-      setCursorPosition(COL_1 + COL_2, BLOCK_4);
+      // setCursorPosition(COL_1 + COL_2 + 1, BLOCK_4 + 1);
+      // cout << "[Process details here:]";
 
-      char procDetailTitle[260];
-      sprintf(procDetailTitle, "Process <%s> detail", argv[1]);
+      HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+      MEMORY_BASIC_INFORMATION mbi;  // 进程虚拟内存空间的基本信息结构
+      ZeroMemory(&mbi, sizeof(mbi)); // 分配缓冲区，用于保存信息
 
-      setConsoleColor(RED_TITLE);
-      printTitle(procDetailTitle);
+      LPCVOID pBlock = (LPVOID)sysi.lpMinimumApplicationAddress;
+      for (int i = 0; i < 10; i++)
+      {
+        if (VirtualQueryEx(hProc, pBlock, &mbi, sizeof(mbi)) == sizeof(mbi))
+        {
+          LPCVOID pEnd = (PBYTE)pBlock + mbi.RegionSize;
+          TCHAR szSize[MAX_PATH];
+          StrFormatByteSize(mbi.RegionSize, szSize, MAX_PATH);
+          setCursorPosition(COL_1 + COL_2 + 1, BLOCK_4 + 2 + i);
+          cout << pBlock << "-" << pEnd << "(" << szSize << ")";
 
-      setConsoleColor(WHITE_CONTENT);
+          setCursorPosition(COL_1 + COL_2 + 1 + COL_2_2 + 24, BLOCK_4 + 2 + i);
+          switch (mbi.State)
+          {
+          case MEM_COMMIT:
+            cout << "Commited ";
+            break;
+          case MEM_FREE:
+            cout << "Free     ";
+            break;
+          case MEM_RESERVE:
+            cout << "Reserved ";
+            break;
+          default:
+            cout << "-        ";
+          }
 
-      setCursorPosition(COL_1 + COL_2 + 1, BLOCK_4 + 1);
-      cout << "[Process details here:]" << endl;
+          setCursorPosition(COL_1 + COL_2 + 1 + COL_2_2 * 2 + 24, BLOCK_4 + 2 + i);
+          cout << mbi.Protect;
+          // if (mbi.Protect == 0 && mbi.State != MEM_FREE)
+          // {
+          //   mbi.Protect = PAGE_READONLY;
+          // }
+
+          setCursorPosition(COL_1 + COL_2 + 1 + COL_2_2 * 3 + 24, BLOCK_4 + 2 + i);
+          switch (mbi.Type)
+          {
+          case MEM_IMAGE:
+            cout << "Image  ";
+            break;
+          case MEM_MAPPED:
+            cout << "Mapped ";
+            break;
+          case MEM_PRIVATE:
+            cout << "Private";
+            break;
+          default:
+            cout << "-      ";
+          }
+
+          TCHAR szFilename[MAX_PATH];
+          GetModuleFileName((HMODULE)pBlock, szFilename, MAX_PATH);
+          PathStripPath(szFilename);
+          setCursorPosition(COL_1 + COL_2 + 1 + COL_2_2 * 4 + 24, BLOCK_4 + 2 + i);
+          cout << szFilename;
+          cout << endl;
+
+          pBlock = pEnd;
+        }
+      }
     }
 
     setConsoleColor(WHITE_CONTENT);
@@ -347,6 +429,7 @@ int main(int argc, char const *argv[])
   }
 
   _getch();
+  cout.flush();
   clearScreen(hStdout);
 
   return 0;

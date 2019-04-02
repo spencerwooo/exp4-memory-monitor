@@ -18,3 +18,11 @@ Windows 设计一个内存监视器，要求：
 -	用 `ps -A` 查看所有进程，找到 `ProcessParent` 的 `pid`
 -	用 `top -p pid` 查看 `ProcessParent` 程序的情况；
 -	用 `pmap -d pid` 查看 `ProcessParent` 的内存使用情况
+
+## Windows 下的编译
+
+```powershell
+g++ mm.cpp -lpsapi -lshlwapi -o mm
+```
+
+需要在编译过程指定链接库 `psapi` 和 `shlwapi` 进行编译。

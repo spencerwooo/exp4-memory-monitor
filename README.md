@@ -26,3 +26,21 @@ g++ mm.cpp -lpsapi -lshlwapi -o mm
 ```
 
 需要在编译过程指定链接库 `psapi` 和 `shlwapi` 进行编译。
+
+## Windows 实验结果
+
+### 无参数执行文件：
+
+```powershell
+.\mm.exe
+```
+
+![](https://i.loli.net/2019/04/07/5ca9941e6bf2b.png)
+
+### 添加参数执行文件：
+
+```powershell
+.\mm.exe ParentProcess.exe
+```
+
+![](https://i.loli.net/2019/04/07/5ca993c14439a.png)

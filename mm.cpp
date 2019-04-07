@@ -7,9 +7,11 @@
 #include <shlwapi.h>
 #include <conio.h>
 
+// 单位转化
 const int UNIT_KB = 1024;
 const int UNIT_MB = 1204 * 1024;
 const int UNIT_GB = 1024 * 1024 * 1024;
+// 表格行列定位
 const int COL_1 = 35;
 const int COL_2 = 25;
 const int COL_3 = 80;
@@ -19,8 +21,7 @@ const int BLOCK_1 = 1;
 const int BLOCK_2 = 7;
 const int BLOCK_3 = 12;
 const int BLOCK_4 = 9;
-
-// FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE |
+// 配色方案
 const unsigned short BLUE_TITLE = BACKGROUND_BLUE;
 const unsigned short YELLOW_TITLE = BACKGROUND_RED | BACKGROUND_GREEN;
 const unsigned short GREEN_TITLE = BACKGROUND_GREEN;
@@ -37,6 +38,7 @@ using namespace std;
 #pragma comment(lib, "psapi.lib")
 #pragma comment(lib, "shlwapi.lib")
 
+// 隐藏光标位置，防止刷新频闪
 void ShowConsoleCursor(bool showFlag)
 {
   HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -48,6 +50,7 @@ void ShowConsoleCursor(bool showFlag)
   SetConsoleCursorInfo(out, &cursorInfo);
 }
 
+// 清屏，即 system("cls") 的实现
 void clearScreen(HANDLE hConsole)
 {
   COORD coordScreen = {0, 0};
@@ -79,6 +82,7 @@ void clearScreen(HANDLE hConsole)
   SetConsoleCursorPosition(hConsole, coordScreen);
 }
 
+// 设置光标输出位置
 void setCursorPosition(int x, int y)
 {
   static const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -87,6 +91,7 @@ void setCursorPosition(int x, int y)
   SetConsoleCursorPosition(hOut, coord);
 }
 
+// 设置输出颜色
 void setConsoleColor(unsigned short color)
 {
   static const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -94,6 +99,7 @@ void setConsoleColor(unsigned short color)
   SetConsoleTextAttribute(hOut, color);
 }
 
+// 输出表格标题栏
 void printTitle(string title, int titleLength)
 {
   int Width = titleLength - title.length();
@@ -112,10 +118,12 @@ void printTitle(string title, int titleLength)
 
 int main(int argc, char const *argv[])
 {
+  // 清屏
   HANDLE hStdout;
   hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
   clearScreen(hStdout);
 
+  // 打印表格中的标题列和不动的部分
   setConsoleColor(BLUE_TITLE);
   printTitle("MEMORY", COL_1 + COL_2);
   setConsoleColor(BLUE_CONTENT);
@@ -158,7 +166,7 @@ int main(int argc, char const *argv[])
   setConsoleColor(RED_CONTENT);
   cout << setw(COL_2_1) << left << "Process ID";
   cout << setw(COL_2_1) << left << "Process Name";
-  cout << setw(COL_2_1) << left << "Virtual Mem" << endl;
+  cout << setw(COL_2_1) << left << "Working Set Size" << endl;
 
   if (argc == 2)
   {
